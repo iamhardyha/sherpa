@@ -21,45 +21,47 @@ export interface Node {
   supersededBy?: string;
 }
 
+type Frontmatter = Record<string, unknown>;
+
 // YAML 1.1은 2026-06-26을 timestamp(Date)로 파싱 — §2.8은 date를 문자열로 규정
 function normalizeDate(value: unknown): string {
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   return value == null ? '' : String(value);
 }
 
+// supersede 양방향 링크는 adr·plan 공통 (§2.3·§2.8) — 값 있을 때만
+function supersedeFields(type: string, data: Frontmatter): Partial<Node> {
+  if (type !== 'adr' && type !== 'plan') return {};
+  return {
+    ...(data.supersedes ? { supersedes: String(data.supersedes) } : {}),
+    ...(data['superseded-by'] ? { supersededBy: String(data['superseded-by']) } : {}),
+  };
+}
+
+// 산출물 타입별 추가 필드 (§4.7). 새 타입 추가 시 여기 + edges.ts + 테스트를 함께 갱신.
+function typeFields(type: string, data: Frontmatter, body: string): Partial<Node> {
+  if (type === 'plan') return { progress: parseProgress(body) };
+  if (type === 'report') return { planRef: data.plan ? String(data.plan) : '' };
+  if (type === 'spec') {
+    return {
+      domain: data.domain ? String(data.domain) : '',
+      lastVerified: normalizeDate(data['last-verified']),
+      refs: Array.isArray(data.refs) ? (data.refs as string[]) : [],
+    };
+  }
+  return {};
+}
+
 // docs/{type}/… 산출물 파일 → graph 노드(§4.7). 정체성(§2.8) + frontmatter.
 export function parseArtifact(path: string, content: string): Node {
   const { data, content: body } = matter(content);
   const identity = deriveIdentity(path);
-  const base: Node = {
+  return {
     ...identity,
     path,
-    status: data.status ?? '',
+    status: data.status ? String(data.status) : '',
     date: normalizeDate(data.date),
+    ...supersedeFields(identity.type, data),
+    ...typeFields(identity.type, data, body),
   };
-
-  // supersede 양방향 링크는 adr·plan 공통 (§2.3·§2.8) — 값 있을 때만
-  if (identity.type === 'adr' || identity.type === 'plan') {
-    if (data.supersedes) base.supersedes = data.supersedes;
-    if (data['superseded-by']) base.supersededBy = data['superseded-by'];
-  }
-
-  if (identity.type === 'plan') {
-    return { ...base, progress: parseProgress(body) };
-  }
-
-  if (identity.type === 'report') {
-    return { ...base, planRef: data.plan ?? '' };
-  }
-
-  if (identity.type === 'spec') {
-    return {
-      ...base,
-      domain: data.domain ?? '',
-      lastVerified: normalizeDate(data['last-verified']),
-      refs: Array.isArray(data.refs) ? data.refs : [],
-    };
-  }
-
-  return base;
 }

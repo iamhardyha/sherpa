@@ -6,6 +6,9 @@ export interface Identity {
   id: string;
 }
 
+// {NNNN}-{date}-{slug} 파일명 → NNNN(표시용) + id={date}-{slug}(영구)
+const FILENAME = /^(\d+)-(\d{4}-\d{2}-\d{2}-.+)$/;
+
 // §2.8: docs/{type}/{NNNN}-{date}-{slug}.md → id={date}-{slug}(영구), NNNN은 표시용.
 export function deriveIdentity(path: string): Identity {
   const segments = path.split('/');
@@ -20,8 +23,7 @@ export function deriveIdentity(path: string): Identity {
     return { type, nnnn: '', id: domain ? `${domain}/${name}` : name };
   }
 
-  const stem = basename(path, '.md');
-  const match = stem.match(/^(\d+)-(\d{4}-\d{2}-\d{2}-.+)$/);
+  const match = basename(path, '.md').match(FILENAME);
   if (!match) throw new Error(`잘못된 산출물 파일명: ${path}`);
 
   return { type, nnnn: match[1], id: match[2] };
