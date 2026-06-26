@@ -40,7 +40,12 @@ const invokedDirectly = process.argv[1] !== undefined && import.meta.url.endsWit
 if (invokedDirectly) {
   const docsDir = process.argv[2] ?? 'docs';
   const today = new Date().toISOString().slice(0, 10);
-  const gitState = collectGitState(process.cwd());
+  let gitState: GitState | undefined;
+  try {
+    gitState = collectGitState(process.cwd());
+  } catch {
+    gitState = undefined; // git 레포가 아니면 드리프트 없이 진행(graph·뷰는 생성)
+  }
   reindex(docsDir, today, gitState)
     .then((s) => console.log(`graph: ${s.nodes} nodes · ${s.edges} edges · ${s.facts} facts → ${docsDir}/.graph.json`))
     .catch((err) => {
