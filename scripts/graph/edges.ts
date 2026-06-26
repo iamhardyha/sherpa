@@ -14,6 +14,9 @@ export function buildEdges(nodes: Node[]): Edge[] {
     if (node.type === 'report' && node.planRef) {
       edges.push({ type: 'plan-report', from: node.id, to: node.planRef });
     }
+    if (node.supersedes) {
+      edges.push({ type: 'supersede', from: node.id, to: node.supersedes });
+    }
   }
 
   return edges;

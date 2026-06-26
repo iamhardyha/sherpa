@@ -1,6 +1,22 @@
 import { test, expect } from 'vitest';
 import { parseArtifact } from './node.js';
 
+// §2.8: adr·plan supersede 양방향 링크(supersedes/superseded-by) — supersede 엣지 source (§2.3·§4.7)
+test('adr 노드는 supersede 양방향 링크를 담는다', () => {
+  const content = `---
+status: superseded
+date: 2026-06-20
+supersedes: 2026-06-18-use-bash
+superseded-by: 2026-06-25-use-typescript
+---
+# 중간 결정`;
+  expect(parseArtifact('docs/adr/0002-2026-06-20-use-js.md', content)).toMatchObject({
+    type: 'adr',
+    supersedes: '2026-06-18-use-bash',
+    supersededBy: '2026-06-25-use-typescript',
+  });
+});
+
 // §2.8: report→plan 역참조(plan: {slug}) — plan-report 엣지의 source (§4.7)
 test('report 노드는 plan 역참조를 담는다', () => {
   const content = `---
