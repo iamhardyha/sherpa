@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<!--
+  lens 불변 구조 템플릿 (§2.4) — 요약 블록 → 시각.
+  채우기 규칙:
+  - {{...}} placeholder를 graph.json(§4.7) 질의 결과 + AI 증류로 채운다.
+  - 데이터는 graph 사실에서만 (허구 금지). 모든 노드는 data-ref로 원본 링크백.
+  - 요약 없는 그림 금지 — <section class="summary">를 비우지 말 것.
+  - 시각(viz)은 뷰별로 채운다: overview=카드, threads=그래프, decisions=타임라인.
+-->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{view}} — {{project}} lens · {{date}}</title>
+  <style>
+    :root { --ink:#1a1a2e; --muted:#6b7280; --warn:#dc2626; --ok:#16a34a; --line:#e5e7eb; --bg:#fafafa; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); background:var(--bg); }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+    header { border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:24px; }
+    header .meta { color:var(--muted); font-size:13px; }
+    h1 { font-size:22px; margin:0 0 4px; }
+    /* 요약 블록 — 불변, 비우지 말 것 */
+    .summary { background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin-bottom:28px; }
+    .summary h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px; }
+    /* 시각 — 뷰별로 채움 */
+    .viz { display:flex; flex-direction:column; gap:14px; }
+    .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+    .card.warn { border-left:3px solid var(--warn); }
+    .card.ok { border-left:3px solid var(--ok); }
+    .node a { color:inherit; text-decoration:none; border-bottom:1px dotted var(--muted); }
+    .node a:hover { border-bottom-style:solid; }
+    .tag { display:inline-block; font-size:12px; padding:1px 8px; border-radius:999px; background:#f1f5f9; color:var(--muted); }
+    footer { margin-top:40px; color:var(--muted); font-size:12px; border-top:1px solid var(--line); padding-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>{{view_title}}</h1>
+      <div class="meta">{{project}} · {{date}} · tier: {{lifespan_tier}}</div>
+    </header>
+
+    <!-- 요약 블록 (AI 증류) — 불변, 항상 채움 -->
+    <section class="summary">
+      <h2>요약</h2>
+      <p>{{summary_paragraph}}</p>
+    </section>
+
+    <!-- 시각 (graph 사실 기반) — 뷰별 렌더. 노드는 data-ref로 원본 링크백 -->
+    <section class="viz">
+      <!-- 예시 카드 (실제는 graph.json 질의 결과로 생성):
+      <div class="card warn">
+        <span class="tag">active-stale</span>
+        <span class="node"><a href="../../plan/0012-2026-06-20-auth.md" data-ref="plan/2026-06-20-auth">plan: 인증 연동</a></span>
+        — report 없음 · 6일 경과
+      </div>
+      -->
+      {{viz_body}}
+    </section>
+
+    <footer>
+      graph.json 사실 기반 · 데이터는 기계가·그림은 AI가 (§2.4) · 노드 클릭 → 원본 산출물
+    </footer>
+  </div>
+</body>
+</html>
