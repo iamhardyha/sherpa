@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { Entry } from './graph.js';
 
 // graph가 파싱하는 산출물 디렉토리 (lens는 HTML, archive는 묘지 — 제외)
-const ARTIFACT_DIRS = ['adr', 'plan', 'spec', 'report'];
+export const ARTIFACT_DIRS = ['adr', 'plan', 'spec', 'report'];
 
 // docs/{type}/ 의 산출물 .md를 읽어 entries로 (§4.7 파서 입력).
 // INDEX(뷰 §3)는 제외. 디렉토리가 없으면 건너뛴다.

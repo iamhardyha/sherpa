@@ -1,9 +1,10 @@
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { collectEntries } from './collect.js';
+import { collectEntries, ARTIFACT_DIRS } from './collect.js';
 import { buildGraph, serializeGraph } from './graph.js';
 import { checkDrift } from './drift.js';
 import { collectGitState, type GitState } from './git.js';
+import { renderDashboard, renderIndex } from './render.js';
 
 export interface ReindexResult {
   nodes: number;
@@ -22,7 +23,15 @@ export async function reindex(docsDir: string, today: string, gitState?: GitStat
     : [];
   const fullGraph = { ...graph, facts: [...graph.facts, ...driftFacts] };
 
+  // 사실(graph.json) + 뷰(대시보드·INDEX ×N) 재생성 (§5.1 — 손편집 금지 §6-G)
   await writeFile(join(docsDir, '.graph.json'), serializeGraph(fullGraph));
+  await writeFile(join(docsDir, 'README.md'), renderDashboard(fullGraph));
+  for (const type of ARTIFACT_DIRS) {
+    const dir = join(docsDir, type);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'INDEX.md'), renderIndex(fullGraph, type));
+  }
+
   return { nodes: fullGraph.nodes.length, edges: fullGraph.edges.length, facts: fullGraph.facts.length };
 }
 
