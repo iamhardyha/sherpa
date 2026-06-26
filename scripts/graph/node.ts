@@ -15,6 +15,8 @@ export interface Node {
   refs?: string[];
   // plan 전용 (§4.7)
   progress?: Progress;
+  // 역참조 (엣지 source §2.8)
+  planRef?: string;
 }
 
 // YAML 1.1은 2026-06-26을 timestamp(Date)로 파싱 — §2.8은 date를 문자열로 규정
@@ -36,6 +38,10 @@ export function parseArtifact(path: string, content: string): Node {
 
   if (identity.type === 'plan') {
     return { ...base, progress: parseProgress(body) };
+  }
+
+  if (identity.type === 'report') {
+    return { ...base, planRef: data.plan ?? '' };
   }
 
   if (identity.type === 'spec') {

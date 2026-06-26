@@ -1,6 +1,19 @@
 import { test, expect } from 'vitest';
 import { parseArtifact } from './node.js';
 
+// §2.8: report→plan 역참조(plan: {slug}) — plan-report 엣지의 source (§4.7)
+test('report 노드는 plan 역참조를 담는다', () => {
+  const content = `---
+date: 2026-06-26
+plan: 2026-06-25-graph-parser
+---
+# 리포트`;
+  expect(parseArtifact('docs/report/0002-2026-06-26-graph.md', content)).toMatchObject({
+    type: 'report',
+    planRef: '2026-06-25-graph-parser',
+  });
+});
+
 // §4.7: plan 노드는 본문 체크박스 진척도(progress)를 담는다 (§2.2)
 test('plan 노드는 본문 진척도를 담는다', () => {
   const content = `---
