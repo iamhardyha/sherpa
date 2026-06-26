@@ -11,10 +11,21 @@
 | `spec.md` | 살아있는 진실 (지금 어떻게) | `refs`(드리프트 입력) · `last-verified` |
 | `report.md` | 결과 (무엇을 했) | `plan`(역참조 — done 파생 입력) |
 
+## 거버넌스 템플릿 (`governance/`)
+
+`/sherpa-init`이 `.sherpa/`·루트에 찍는 파일들. 핵심 ≤200줄, 상세는 스킬로 progressive disclosure(§4.1·§4.5) — 그래서 *얇게*. workflow.md는 §6 규칙의 포인터지 사본이 아니다.
+
+| 파일 | 위치 | 역할 |
+|---|---|---|
+| `CLAUDE.md` | 루트 | 얇은 포인터 — @import 3종 + 핵심 규칙 요약 |
+| `workflow.md` | `.sherpa/` | 작업 순서 핵심 (상세는 core-workflow 스킬) |
+| `project-context.md` | `.sherpa/` | 이 레포가 무엇인지 (온보딩 진입점) |
+| `conventions.md` | `.sherpa/` | 아키텍처+코드 규칙 (린터 매핑 + advisory) |
+| `progress.md` | `.sherpa/` | 에이전트 작업 메모리 (세션 간 복원) |
+
 ## 이 폴더에 *없는* 것
 
 - **lens** — HTML 생성물이라 손작성 프론트매터가 없다(§2.7). 뷰 템플릿(요약 블록 → 시각)은 `skills/lens/`에 둔다.
-- **거버넌스 템플릿** (`workflow.md`·`project-context.md`·`conventions.md`·`progress.md`·`CLAUDE.md`) — `/sherpa-init`이 찍는 `.sherpa/` 파일들. 별도 배치(다음 작업).
 
 ## 규칙
 
