@@ -11,3 +11,9 @@ scripts/dist/
 
 # Sherpa 재생성물 (graph 사실 — §3·§4.7)
 .graph.json
+
+# 내부 설계 문서 (로컬 정본 — origin 비공개)
+2026-06-22-sherpa-plugin-design.md
+2026-06-23-anthropic-alignment.md
+2026-06-23-design-holes-and-expert-solutions.md
+sherpa-handoff-2026-06-23.md
