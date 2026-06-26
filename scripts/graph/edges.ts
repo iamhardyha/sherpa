@@ -17,6 +17,11 @@ export function buildEdges(nodes: Node[]): Edge[] {
     if (node.supersedes) {
       edges.push({ type: 'supersede', from: node.id, to: node.supersedes });
     }
+    if (node.type === 'spec' && node.refs) {
+      for (const ref of node.refs) {
+        edges.push({ type: 'spec-refs', from: node.id, to: ref });
+      }
+    }
   }
 
   return edges;

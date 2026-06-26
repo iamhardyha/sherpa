@@ -2,6 +2,18 @@ import { test, expect } from 'vitest';
 import { parseArtifact } from './node.js';
 import { buildEdges } from './edges.js';
 
+// §4.7: spec refs에서 spec-refs 엣지(spec→코드 — 산출물이 아닌 경로·심볼). refs 항목마다 하나.
+test('spec refs에서 spec-refs 엣지를 만든다', () => {
+  const spec = parseArtifact(
+    'docs/spec/auth/token.md',
+    `---\ndomain: auth\nlast-verified: 2026-06-20\nrefs:\n  - src/auth/token.ts#issueToken\n  - src/auth/**\n---\n# 토큰`,
+  );
+  expect(buildEdges([spec])).toEqual([
+    { type: 'spec-refs', from: 'auth/token', to: 'src/auth/token.ts#issueToken' },
+    { type: 'spec-refs', from: 'auth/token', to: 'src/auth/**' },
+  ]);
+});
+
 // §4.7: supersedes 링크에서 supersede 엣지(새것→옛것)
 test('supersedes 링크에서 supersede 엣지를 만든다', () => {
   const newAdr = parseArtifact(
