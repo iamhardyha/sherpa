@@ -1,0 +1,20 @@
+{
+  "name": "sherpa-scripts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Sherpa 결정론 바닥 — graph 파서·드리프트·링크 체커 (hook·CI 공용, 순수 파싱)",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
