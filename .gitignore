@@ -1,0 +1,9 @@
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Sherpa 재생성물 (graph 사실 — §3·§4.7)
+docs/.graph.json
