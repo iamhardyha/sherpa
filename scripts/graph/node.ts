@@ -1,5 +1,6 @@
 import matter from 'gray-matter';
 import { deriveIdentity } from './identity.js';
+import { parseProgress, type Progress } from './progress.js';
 
 export interface Node {
   id: string;
@@ -12,6 +13,8 @@ export interface Node {
   domain?: string;
   lastVerified?: string;
   refs?: string[];
+  // plan 전용 (§4.7)
+  progress?: Progress;
 }
 
 // YAML 1.1은 2026-06-26을 timestamp(Date)로 파싱 — §2.8은 date를 문자열로 규정
@@ -22,7 +25,7 @@ function normalizeDate(value: unknown): string {
 
 // docs/{type}/… 산출물 파일 → graph 노드(§4.7). 정체성(§2.8) + frontmatter.
 export function parseArtifact(path: string, content: string): Node {
-  const { data } = matter(content);
+  const { data, content: body } = matter(content);
   const identity = deriveIdentity(path);
   const base: Node = {
     ...identity,
@@ -30,6 +33,10 @@ export function parseArtifact(path: string, content: string): Node {
     status: data.status ?? '',
     date: normalizeDate(data.date),
   };
+
+  if (identity.type === 'plan') {
+    return { ...base, progress: parseProgress(body) };
+  }
 
   if (identity.type === 'spec') {
     return {
