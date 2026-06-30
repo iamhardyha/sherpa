@@ -11,14 +11,19 @@ disable-model-invocation: true
 
 ## 절차
 
-1. **레포 파악**: 언어·프레임워크·린터 존재를 스캔(`project-context.md`·`conventions.md` 채울 근거).
-2. **stream 선택**(§4.2): 기본=stream 없음 → `docs/{artifact}/`. 복합 도메인(서버 등)이면 `--stream` → `docs/{stream}/{artifact}/`. 모호하면 사람에게 묻는다.
-3. **거버넌스 생성** — `templates/governance/`에서 찍는다:
-   - 루트 `CLAUDE.md`, `.sherpa/{workflow,project-context,conventions,progress}.md`, `.sherpa/skill-docs.md`.
-   - project-context는 1번 스캔 결과로 초안, 사람이 검토.
-4. **docs/ 스캐폴드**: `docs/{adr,plan,spec,report,lens,archive}/` + 각 INDEX(뷰) + `docs/README.md` 대시보드. lens는 타입별 폴더(overview·threads·decisions·concept·custom).
-5. **.gitignore**: `docs/.graph.json`(재생성물 §3) 추가.
-6. **보고 → 커밋**(가역이라 자동, §6-F). 컨벤션은 후속 `/sherpa-conventions`로 채우라고 안내.
+스캐폴드는 **결정론적 스크립트**가 만든다(프롬프트로 찍지 않음 — §4.3). 에이전트는 호출·인터뷰·보고만.
+
+1. **stream 선택**(§4.2): 기본=stream 없음 → `docs/{artifact}/`. 복합 도메인(서버 등)이면 stream 이름 → `docs/{stream}/{artifact}/`. 모호하면 사람에게 묻는다.
+2. **스캐폴드 실행** — 거버넌스(`templates/governance/` → `CLAUDE.md`·`.sherpa/*`) + `docs/` 구조(산출물 5종 + lens 타입별 + archive)를 한 번에 생성. 기존 파일은 보호(덮어쓰지 않음):
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/dist/init/init.js" [stream]
+   ```
+3. **뷰 생성** — INDEX·대시보드·graph를 재생성:
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/dist/graph/reindex.js" docs
+   ```
+4. **project-context 초안**: 레포 언어·프레임워크·구조를 스캔해 `.sherpa/project-context.md`를 채우고 사람이 검토.
+5. **보고 → 커밋**(가역이라 자동, §6-F). 컨벤션은 후속 `/sherpa-conventions`로 채우라고 안내.
 
 ## --upgrade
 
