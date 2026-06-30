@@ -208,6 +208,15 @@ section:first-of-type{border-top:none}
 .linkcard .d{font-size:13.5px;color:var(--muted)}
 .linkcard .ar{position:absolute;top:24px;right:26px;color:var(--brass);font-size:18px;transition:transform .35s}
 .linkcard:hover .ar{transform:translate(4px,-4px)}
+/* 작업 플로우 단계 */
+.flowsteps{margin-top:50px}
+.fstep{display:grid;grid-template-columns:60px 1fr;gap:24px;padding:24px 0;border-top:1px solid var(--line2);align-items:baseline}
+.fstep:first-child{border-top:none}
+.fstep .sn{font-family:var(--serif);font-size:38px;font-weight:800;color:var(--brass);opacity:.5;line-height:1}
+.fstep .ft{font-size:20px;color:var(--text);font-weight:700;margin-bottom:5px}
+.fstep .fd{color:var(--muted);font-size:15px}
+.fstep .pill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 9px;border-radius:100px;background:rgba(154,162,109,.16);color:var(--sage);margin-left:10px;vertical-align:middle;font-weight:500}
+.fstep .pill.gate{background:rgba(189,82,56,.16);color:var(--rust)}
 </style>
 </head>
 <body>
@@ -372,10 +381,28 @@ section:first-of-type{border-top:none}
   </div>
 </section>
 
+<!-- WORKFLOW -->
+<section>
+  <div class="wrap">
+    <div class="reveal"><span class="sec-num">04 — 작업 플로우</span>
+    <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">"이거 해줘" 하면 <span class="serif-i">이렇게 흐른다</span></h2>
+    <p class="lead">작업자는 요청하고 승인만. 나머지는 Sherpa가 자동으로 처리합니다.</p></div>
+    <div class="flowsteps reveal">
+      <div class="fstep"><div class="sn">1</div><div><div class="ft">plan 생성</div><div class="fd">트리비얼이 아니면 <code style="font-family:var(--mono);color:var(--brass)">docs/plan/</code> 에 태스크 체크박스로 계획을 세운다</div></div></div>
+      <div class="fstep"><div class="sn">2</div><div><div class="ft">작업 + 테스트</div><div class="fd">코드를 짜고, 로직이면 테스트를 작성한다</div></div></div>
+      <div class="fstep"><div class="sn">3</div><div><div class="ft">산출물 갱신</div><div class="fd">spec 갱신 · report 작성 · archive 정리 — 시기적절하게</div></div></div>
+      <div class="fstep"><div class="sn">4</div><div><div class="ft">graph 재생성<span class="pill">자동</span></div><div class="fd">편집할 때마다 PostToolUse hook이 <code style="font-family:var(--mono);color:var(--brass)">.graph.json</code>·대시보드를 갱신한다</div></div></div>
+      <div class="fstep"><div class="sn">5</div><div><div class="ft">검증 · 보고</div><div class="fd">/simplify → /code-review + 테스트를 통과하고, 한 일을 보고한다</div></div></div>
+      <div class="fstep"><div class="sn">6</div><div><div class="ft">커밋<span class="pill">가역 = 자동</span></div><div class="fd">로컬 커밋은 가역이라 자동 진행 — 단, report가 빠지면 hook이 막는다</div></div></div>
+      <div class="fstep"><div class="sn">7</div><div><div class="ft">가역성 게이트<span class="pill gate">비가역만 승인</span></div><div class="fd">push · 릴리스 · 배포처럼 되돌릴 수 없는 행위만 사람의 승인을 기다린다</div></div></div>
+    </div>
+  </div>
+</section>
+
 <!-- MECHANISM -->
 <section>
   <div class="wrap">
-    <div class="reveal"><span class="sec-num">04 — 동작 원리</span>
+    <div class="reveal"><span class="sec-num">05 — 동작 원리</span>
     <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">강제는 <span class="serif-i">실제로 도는 코드</span>다</h2>
     <p class="lead">설치하면 두 개의 hook이 당신의 작업에 조용히 끼어듭니다. 하나는 비차단, 하나는 차단형.</p></div>
     <div class="flow">
@@ -405,7 +432,7 @@ section:first-of-type{border-top:none}
 <!-- ROOT PRINCIPLES -->
 <section>
   <div class="wrap">
-    <div class="reveal"><span class="sec-num">05 — 근본 원리</span>
+    <div class="reveal"><span class="sec-num">06 — 근본 원리</span>
     <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">왜 이것이 <span class="serif-i">무너지지 않나</span></h2>
     <p class="lead">표면의 기능이 아니라, 그 아래에서 신뢰를 떠받치는 메커니즘.</p></div>
     <div class="roots reveal">
@@ -421,7 +448,7 @@ section:first-of-type{border-top:none}
 <!-- COMMANDS -->
 <section>
   <div class="wrap">
-    <div class="reveal"><span class="sec-num">06 — 명령</span>
+    <div class="reveal"><span class="sec-num">07 — 명령</span>
     <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">언제 <span class="serif-i">무엇을</span> 쓰나</h2></div>
     <div class="cmds">
       <div class="cmd reveal d1"><code>/sherpa-init</code><div class="w">프로젝트 시작 시 1회 — .sherpa·docs 구조를 결정론적으로 생성</div></div>
