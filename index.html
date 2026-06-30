@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sherpa — AI 산출물 워크플로우 · 동작 원리</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<!-- 비차단 로드: CDN이 느리거나 실패해도 페이지는 즉시 렌더(시스템 한글 fallback) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css" media="print" onload="this.media='all'" onerror="this.remove()">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css"></noscript>
+<style>
+:root{
+  --ink:#100f0b; --ink2:#16150f; --paper:#1b1a12; --paper2:#22201557;
+  --line:rgba(203,161,53,.16); --line2:rgba(233,228,212,.09);
+  --text:#ece7d6; --muted:#9b967f; --faint:#6a6655;
+  --brass:#cba135; --brass-soft:#e3c46a; --sage:#9aa26d; --moss:#6f7c4d; --rust:#bd5238;
+  --stack:"Wanted Sans Variable","Wanted Sans",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic","Noto Sans KR",sans-serif;
+  --serif:var(--stack); --mono:var(--stack); --sans:var(--stack);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--ink); color:var(--text); font-family:var(--sans); font-weight:300;
+  line-height:1.75; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  word-break:keep-all; overflow-wrap:break-word;
+}
+/* grain overlay */
+body::before{
+  content:""; position:fixed; inset:0; z-index:9999; pointer-events:none; opacity:.04;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+/* contour background */
+.contours{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5}
+.contours svg{width:100%;height:100%}
+
+/* ---- type ---- */
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--brass);font-weight:500}
+h1,h2,h3{font-family:var(--serif);font-weight:800;line-height:1.1;letter-spacing:-.025em}
+.serif-i{font-weight:800;color:var(--brass-soft)}
+section{position:relative;z-index:1;padding:120px 0;border-top:1px solid var(--line2)}
+section:first-of-type{border-top:none}
+.sec-num{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.2em}
+.lead{font-size:19px;color:var(--muted);max-width:62ch;font-weight:300}
+
+/* ---- hero ---- */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:80px 0 100px;position:relative}
+.hero .badge{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;border:1px solid var(--line);padding:8px 16px;border-radius:100px;width:fit-content;margin-bottom:40px}
+.hero .badge .dot{width:6px;height:6px;border-radius:50%;background:var(--sage);box-shadow:0 0 12px var(--sage)}
+.hero h1{font-size:clamp(54px,9vw,118px);letter-spacing:-.03em;margin-bottom:8px}
+.hero h1 .glyph{font-size:.7em;color:var(--brass);vertical-align:.05em}
+.hero .tag{font-family:var(--serif);font-size:clamp(22px,3.4vw,38px);color:var(--text);font-weight:500;max-width:22ch;margin:18px 0 36px;line-height:1.32}
+.hero .sub{font-size:18px;color:var(--muted);max-width:54ch;margin-bottom:48px}
+.hero .meta{display:flex;gap:36px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px;color:var(--faint);letter-spacing:.05em}
+.hero .meta b{color:var(--brass);font-weight:500}
+.compass{position:absolute;top:50%;right:-40px;transform:translateY(-50%);width:340px;height:340px;opacity:.85;animation:float 9s ease-in-out infinite}
+.compass .needle{transform-origin:170px 170px;animation:spin 28s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes float{0%,100%{transform:translateY(-50%)}50%{transform:translateY(-54%)}}
+@media(max-width:920px){.compass{display:none}}
+
+/* ---- one-liner strip ---- */
+.thesis{background:linear-gradient(180deg,transparent,var(--ink2));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.thesis .big{font-family:var(--serif);font-size:clamp(28px,4.6vw,52px);font-weight:300;line-height:1.25;letter-spacing:-.015em;max-width:24ch}
+.thesis .big{font-weight:400}
+.thesis .big em{font-style:normal;font-weight:800;color:var(--brass-soft)}
+.thesis .note{margin-top:28px;color:var(--muted);font-size:16px;max-width:58ch}
+
+/* ---- problem cards ---- */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:54px}
+@media(max-width:820px){.grid3{grid-template-columns:1fr}}
+.pcard{background:var(--paper);border:1px solid var(--line2);border-radius:4px;padding:32px 28px;position:relative;overflow:hidden}
+.pcard .n{font-family:var(--mono);font-size:13px;color:var(--rust);letter-spacing:.1em}
+.pcard h3{font-size:24px;margin:14px 0 12px;color:var(--text)}
+.pcard p{color:var(--muted);font-size:15.5px}
+.pcard::after{content:"";position:absolute;right:-30px;bottom:-30px;width:90px;height:90px;border:1px solid var(--line);border-radius:50%}
+
+/* ---- philosophy ---- */
+.principle{display:grid;grid-template-columns:88px 1fr;gap:32px;padding:48px 0;border-top:1px solid var(--line2)}
+.principle:first-child{border-top:none}
+@media(max-width:720px){.principle{grid-template-columns:1fr;gap:18px}}
+.principle .pn{font-family:var(--serif);font-size:64px;color:var(--brass);line-height:.8;opacity:.5}
+.principle h3{font-size:30px;margin-bottom:14px}
+.principle h3 .ko{font-size:.62em;color:var(--muted);font-family:var(--mono);letter-spacing:.04em;display:block;margin-top:6px;text-transform:uppercase}
+.principle p{color:var(--muted);max-width:64ch;font-size:16px}
+.principle .why{margin-top:14px;padding-left:18px;border-left:2px solid var(--brass);color:var(--text);font-size:15px}
+
+/* compare blocks (부탁 vs 검사) */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}
+@media(max-width:620px){.compare{grid-template-columns:1fr}}
+.col{border:1px solid var(--line2);border-radius:4px;padding:22px;font-family:var(--mono);font-size:13.5px;line-height:1.9}
+.col .h{font-size:11px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px}
+.col.a .h{color:var(--rust)} .col.b .h{color:var(--sage)}
+.col .x{color:var(--rust)} .col .o{color:var(--sage)}
+.col .row{color:var(--muted)}
+
+/* desk/shelf */
+.shelf{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:24px}
+@media(max-width:620px){.shelf{grid-template-columns:1fr}}
+.shelf .box{border:1px dashed var(--line);border-radius:4px;padding:24px}
+.shelf .box .t{font-family:var(--serif);font-size:22px;margin-bottom:6px}
+.shelf .box .d{color:var(--muted);font-size:14px}
+.shelf .box.disk .t{color:var(--sage)} .shelf .box.ctx .t{color:var(--brass)}
+
+/* ---- timeline (artifacts) ---- */
+.timeline{margin-top:56px;position:relative}
+.tl-track{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative}
+@media(max-width:860px){.tl-track{grid-template-columns:1fr;gap:14px}}
+.tl-line{position:absolute;top:38px;left:6%;right:6%;height:1px;background:linear-gradient(90deg,transparent,var(--brass),transparent)}
+@media(max-width:860px){.tl-line{display:none}}
+.stage{padding:0 12px;text-align:center;position:relative}
+@media(max-width:860px){.stage{text-align:left;padding:0;border-left:2px solid var(--line);padding-left:20px}}
+.stage .when{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.stage .node{width:14px;height:14px;border-radius:50%;background:var(--ink);border:2px solid var(--brass);margin:16px auto;position:relative;z-index:2}
+@media(max-width:860px){.stage .node{margin:10px 0}}
+.stage .name{font-family:var(--serif);font-size:30px;color:var(--brass-soft)}
+.stage .q{font-size:13px;color:var(--text);margin:6px 0 8px;font-weight:400}
+.stage .desc{font-size:13px;color:var(--muted);line-height:1.6}
+.lens-row{margin-top:40px;border:1px solid var(--line);border-radius:4px;padding:26px 28px;display:flex;gap:22px;align-items:flex-start;background:var(--paper2)}
+.lens-row .ic{font-size:32px;line-height:1}
+.lens-row .name{font-family:var(--serif);font-size:26px;color:var(--text)}
+.lens-row p{color:var(--muted);font-size:15px;margin-top:4px}
+
+/* folder tree */
+.ftree{list-style:none;background:var(--ink2);border:1px solid var(--line2);border-radius:6px;padding:26px 30px;margin-top:34px;font-size:14.5px;line-height:1.5}
+.ftree ul{list-style:none;padding-left:22px;margin-left:8px;border-left:1px solid var(--line2)}
+.ftree li{padding:6px 0 6px 18px;color:var(--text);position:relative;font-weight:300}
+.ftree li::before{content:"";position:absolute;left:0;top:18px;width:12px;height:1px;background:var(--line)}
+.ftree>li{padding-left:0}
+.ftree>li::before{display:none}
+.ftree>li+li{margin-top:6px}
+.ftree .dir{color:var(--brass);font-weight:600}
+.ftree .gen{color:var(--faint)}
+.ftree .cmt{color:var(--sage);font-size:13px;margin-left:8px}
+
+/* ---- mechanism flow ---- */
+.flow{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:54px}
+@media(max-width:820px){.flow{grid-template-columns:1fr}}
+.fcard{border:1px solid var(--line2);border-radius:6px;overflow:hidden;background:var(--paper)}
+.fcard .top{padding:20px 26px;font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.fcard.post .top{background:rgba(154,162,109,.1);color:var(--sage);border-bottom:1px solid var(--line2)}
+.fcard.pre .top{background:rgba(189,82,56,.12);color:var(--rust);border-bottom:1px solid var(--line2)}
+.fcard .body{padding:26px}
+.step{font-family:var(--mono);font-size:13.5px;color:var(--muted);padding:9px 0;display:flex;gap:12px;align-items:flex-start}
+.step .ar{color:var(--brass)}
+.step b{color:var(--text);font-weight:500}
+.tag-pill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:3px 9px;border-radius:100px;text-transform:uppercase}
+.tag-pill.green{background:rgba(154,162,109,.16);color:var(--sage)}
+.tag-pill.red{background:rgba(189,82,56,.16);color:var(--rust)}
+.block-line{color:var(--rust)} .pass-line{color:var(--sage)}
+
+/* machine vs ai */
+.mva{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;margin-top:34px;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+@media(max-width:720px){.mva{grid-template-columns:1fr}}
+.mva .side{padding:30px 28px}
+.mva .side.m{background:var(--ink2)}
+.mva .side .lab{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:14px}
+.mva .side.m .lab{color:var(--brass)} .mva .side.ai .lab{color:var(--sage)}
+.mva .side .big{font-family:var(--serif);font-size:21px;line-height:1.3;margin-bottom:10px}
+.mva .side .ex{font-family:var(--mono);font-size:12.5px;color:var(--muted);line-height:1.8}
+.mva .arrow{display:flex;align-items:center;justify-content:center;padding:0 24px;color:var(--brass);font-size:24px;border-left:1px solid var(--line2);border-right:1px solid var(--line2)}
+@media(max-width:720px){.mva .arrow{border:none;padding:14px 0;transform:rotate(90deg)}}
+
+/* ---- root principles ---- */
+.roots{margin-top:50px;display:grid;gap:2px;background:var(--line2);border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.root{background:var(--ink);padding:30px 32px;display:grid;grid-template-columns:200px 1fr;gap:28px}
+@media(max-width:720px){.root{grid-template-columns:1fr;gap:8px}}
+.root .k{font-family:var(--serif);font-size:21px;color:var(--brass-soft)}
+.root .k .em{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase;margin-top:6px}
+.root .v{color:var(--muted);font-size:15.5px}
+.root .v b{color:var(--text);font-weight:500}
+
+/* commands */
+.cmds{margin-top:50px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.cmds{grid-template-columns:1fr}}
+.cmd{border:1px solid var(--line2);border-radius:5px;padding:22px 24px;transition:border-color .3s,transform .3s}
+.cmd:hover{border-color:var(--brass);transform:translateY(-2px)}
+.cmd code{font-family:var(--mono);font-size:14.5px;color:var(--brass);font-weight:500}
+.cmd .w{color:var(--muted);font-size:14px;margin-top:8px}
+
+/* footer */
+.foot{padding:90px 0 70px;text-align:center;border-top:1px solid var(--line)}
+.foot .glyph{font-size:40px;color:var(--brass)}
+.foot .l{font-family:var(--serif);font-weight:600;font-size:26px;margin:18px 0 10px}
+.foot .install{font-family:var(--mono);font-size:13px;color:var(--muted);background:var(--ink2);border:1px solid var(--line2);border-radius:6px;padding:18px 24px;display:inline-block;text-align:left;margin-top:20px;line-height:2}
+.foot .install .c{color:var(--brass)}
+.foot .meta{margin-top:30px;font-family:var(--mono);font-size:11.5px;color:var(--faint);letter-spacing:.1em}
+
+/* reveal */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}
+/* Wanted Sans 디스플레이 weight 보강 (산세리프 기본이 얇으므로) */
+.stage .name,.root .k,.lens-row .name,.mva .side .big{font-weight:700}
+.principle .pn{font-weight:800}
+.shelf .box .t,.hero h1{font-weight:800}
+.thesis .big{font-weight:400}
+</style>
+</head>
+<body>
+
+<div class="contours" aria-hidden="true">
+<svg viewBox="0 0 1200 900" preserveAspectRatio="xMidYMid slice" fill="none">
+<g stroke="var(--brass)" stroke-width="1" opacity="0.22">
+<path d="M-50 200 Q 300 120 600 220 T 1250 200"/>
+<path d="M-50 280 Q 320 200 600 300 T 1250 280"/>
+<path d="M-50 360 Q 340 280 600 380 T 1250 360"/>
+<path d="M-50 470 Q 300 380 620 480 T 1250 460"/>
+<path d="M-50 580 Q 360 500 600 600 T 1250 580"/>
+<path d="M-50 690 Q 320 620 600 710 T 1250 690"/>
+<ellipse cx="640" cy="430" rx="150" ry="80" opacity="0.5"/>
+<ellipse cx="640" cy="430" rx="90" ry="46" opacity="0.6"/>
+<ellipse cx="640" cy="430" rx="40" ry="20" opacity="0.7"/>
+</g>
+</svg>
+</div>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <div class="badge"><span class="dot"></span>Claude Code 플러그인 · 결정론적 워크플로우</div>
+    <h1>Sherpa <span class="glyph">🧭</span></h1>
+    <div class="tag">작업에만 몰두하세요. 산출물은 <span class="serif-i">AI가</span>, 신뢰는 <span class="serif-i">코드가</span>.</div>
+    <p class="sub">AI가 만드는 모든 문서를 AI가 끝까지 관리하고, 개발자는 보고받고 승인만 합니다. 그리고 — 반드시 지킬 규칙은 AI에게 <em>부탁</em>하지 않고, 코드가 <em>기계적으로 강제</em>합니다.</p>
+    <div class="meta"><span>v<b>0.2.0</b></span><span><b>43</b> tests</span><span>Node + TypeScript</span><span>github.com/iamhardyha/<b>sherpa</b></span></div>
+  </div>
+  <svg class="compass" viewBox="0 0 340 340" fill="none" aria-hidden="true">
+    <circle cx="170" cy="170" r="150" stroke="var(--line)" stroke-width="1"/>
+    <circle cx="170" cy="170" r="120" stroke="var(--line2)" stroke-width="1"/>
+    <circle cx="170" cy="170" r="4" fill="var(--brass)"/>
+    <g font-family="Wanted Sans Variable, sans-serif" font-size="14" font-weight="600" fill="var(--muted)" letter-spacing="2">
+      <text x="164" y="40">N</text><text x="296" y="176">E</text><text x="166" y="312">S</text><text x="30" y="176">W</text>
+    </g>
+    <g class="needle">
+      <path d="M170 60 L182 170 L170 175 L158 170 Z" fill="var(--brass)"/>
+      <path d="M170 280 L182 170 L170 165 L158 170 Z" fill="var(--faint)"/>
+    </g>
+    <g stroke="var(--line)" stroke-width="1">
+      <line x1="170" y1="20" x2="170" y2="34"/><line x1="170" y1="306" x2="170" y2="320"/>
+      <line x1="20" y1="170" x2="34" y2="170"/><line x1="306" y1="170" x2="320" y2="170"/>
+    </g>
+  </svg>
+</header>
+
+<!-- THESIS -->
+<section class="thesis">
+  <div class="wrap reveal">
+    <div class="eyebrow">근본 명제</div>
+    <p class="big" style="margin-top:24px">신뢰는 프롬프트가 아니라, 프롬프트 <em>밖</em>의 결정론적 강제에서 온다.</p>
+    <p class="note">LLM의 지시 준수는 확률적입니다. 컨텍스트 압축·핸드오프·새 세션에서 깨집니다. 그래서 Sherpa는 반드시 지킬 불변식을 advisory(권고 텍스트)에서 빼내, hook·CI·정적 파서라는 <b style="color:var(--text);font-weight:400">기계</b>로 옮깁니다. 코드는 잊지 않습니다.</p>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section>
+  <div class="wrap">
+    <div class="reveal"><span class="sec-num">01 — 왜</span>
+    <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 18px">AI와 오래 일하면<br>누구나 겪는 <span class="serif-i">세 가지 고통</span></h2></div>
+    <div class="grid3">
+      <div class="pcard reveal d1"><div class="n">고통 01</div><h3>뭐가 살아있지?</h3><p>결정·계획·명세가 폴더에 쌓인다. 몇 달 뒤 열면 이게 유효한지, 폐기됐는지, 코드랑 맞는지 알 수 없다.</p></div>
+      <div class="pcard reveal d2"><div class="n">고통 02</div><h3>맥락이 증발</h3><p>다른 컴퓨터·새 세션·컨텍스트 압축을 거치면 "내가 어디까지 했지?"가 사라진다. AI도, 당신도.</p></div>
+      <div class="pcard reveal d3"><div class="n">고통 03</div><h3>AI는 잊는다</h3><p>"끝나면 문서 정리해줘"라고 시켜도 LLM은 <em>확률적으로</em> 따른다. 맥락이 끊기는 지점에서 특히.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PHILOSOPHY -->
+<section>
+  <div class="wrap">
+    <div class="reveal"><span class="sec-num">02 — 철학</span>
+    <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">다섯 개의 <span class="serif-i">근본 원리</span></h2>
+    <p class="lead">모든 설계가 여기서 나옵니다. 하나씩, 왜 그런지와 함께.</p></div>
+
+    <div class="principle reveal"><div class="pn">1</div><div>
+      <h3>결정론적 강제<span class="ko">Deterministic Enforcement</span></h3>
+      <p>LLM에게 규칙을 주는 방법은 둘. <b style="color:var(--text)">부탁</b>(프롬프트)과 <b style="color:var(--text)">검사</b>(코드). Sherpa는 둘 다 쓰되, 반드시 지킬 소수는 코드로 강제합니다.</p>
+      <div class="compare">
+        <div class="col a"><div class="h">방법 A · 부탁 (advisory)</div><div class="row">"작업 끝에 문서 정리해줘"</div><div class="row x">✕ 확률적으로 지켜짐</div><div class="row x">✕ 압축·핸드오프에서 깨짐</div></div>
+        <div class="col b"><div class="h">방법 B · 검사 (Sherpa)</div><div class="row">hook이 커밋 직전 검사</div><div class="row o">✓ 항상 발화함</div><div class="row o">✓ 절대 깨지지 않음</div></div>
+      </div>
+      <p class="why">완료된 plan에 report 없이 <code style="font-family:var(--mono);color:var(--brass)">git commit</code>을 시도하면 — hook이 커밋을 <b style="color:var(--rust)">막고</b> "report가 필요합니다"라고 알립니다. AI가 깜빡해도 코드는 안 깜빡합니다.</p>
+    </div></div>
+
+    <div class="principle reveal"><div class="pn">2</div><div>
+      <h3>경량 컨텍스트<span class="ko">Lightweight Context · O(1)</span></h3>
+      <p>AI를 책상에서 일하는 사람으로 보세요. 책장(디스크)엔 문서가 무한히 쌓여도 되지만, 책상(컨텍스트)은 좁습니다. 다 올리면 길을 잃습니다.</p>
+      <div class="shelf">
+        <div class="box disk"><div class="t">📚 책장 — 디스크</div><div class="d">adr·plan·report 1년치가 쌓여도 OK. 누적은 O(n).</div></div>
+        <div class="box ctx"><div class="t">🪑 책상 — 컨텍스트</div><div class="d">좁다. 매번 짊어지는 양은 일정해야. 상시 로드는 O(1).</div></div>
+      </div>
+      <p class="why">문서를 통째로 읽지 않고 <b style="color:var(--text)">graph에서 필요한 사실만 질의</b>합니다. 항상 켜둘 규칙은 짧게(≤200줄), 상세는 필요할 때만. 죽은 문서는 묘지로 치웁니다.</p>
+    </div></div>
+
+    <div class="principle reveal"><div class="pn">3</div><div>
+      <h3>데이터는 기계가, 그림은 AI가<span class="ko">Facts by Machine · Visuals by AI</span></h3>
+      <p>"이 plan이 끊겼나?", "이 결정이 폐기됐나?" — 이런 사실 판정을 LLM에 맡기면 환각이 생깁니다. 정적 파서가 링크를 읽어 판정하니 <b style="color:var(--text)">지어낼 수가 없습니다.</b></p>
+      <div class="mva">
+        <div class="side m"><div class="lab">graph 파서 (기계)</div><div class="big">"plan 0012는 끊겼다"</div><div class="ex">링크를 정적 파싱<br>= 사실 · 검증 가능</div></div>
+        <div class="arrow">→</div>
+        <div class="side ai"><div class="lab">lens / 대시보드 (AI)</div><div class="big">그 사실을 요약 + HTML로</div><div class="ex">사실은 못 바꾸고<br>표현만 더한다</div></div>
+      </div>
+    </div></div>
+
+    <div class="principle reveal"><div class="pn">4</div><div>
+      <h3>시간축 산출물<span class="ko">Time-Axis Artifacts</span></h3>
+      <p>문서 종류의 역할이 겹치면 "이걸 어디다 쓰지?" 혼란이 생깁니다. Sherpa는 산출물을 시간축으로 정렬해 역할이 절대 안 겹치게 합니다. (아래 03 참고.)</p>
+      <p class="why"><b style="color:var(--text)">왜</b>(adr) → <b style="color:var(--text)">무엇을 할</b>(plan) → <b style="color:var(--text)">지금 어떻게</b>(spec) → <b style="color:var(--text)">무엇을 했</b>(report) → <b style="color:var(--text)">은퇴</b>(archive). 질문이 다르니 헷갈릴 일이 없습니다.</p>
+    </div></div>
+
+    <div class="principle reveal"><div class="pn">5</div><div>
+      <h3>가역성 게이트<span class="ko">Reversibility Gate</span></h3>
+      <p>매 커밋마다 승인을 물으면 곧 읽지도 않고 OK를 누릅니다(고무도장). 그러면 정작 위험한 배포·발행의 주의가 흐려집니다. 그래서 기준은 "중요한가"가 아니라 <b style="color:var(--text)">"되돌릴 수 있는가"</b>.</p>
+      <div class="compare">
+        <div class="col b"><div class="h" style="color:var(--sage)">가역 — 자동 진행</div><div class="row o">로컬 편집 · 로컬 커밋</div><div class="row">git으로 되돌림 → 사후 보고</div></div>
+        <div class="col a"><div class="h" style="color:var(--rust)">비가역 — 사람 승인</div><div class="row x">force-push · 릴리스 · 배포</div><div class="row">되돌릴 수 없는 8%에만 주의</div></div>
+      </div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ARTIFACTS -->
+<section>
+  <div class="wrap">
+    <div class="reveal"><span class="sec-num">03 — 산출물</span>
+    <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">시간축 위의 <span class="serif-i">다섯 + 하나</span></h2>
+    <p class="lead">다섯은 시간축 위에 있어 서로 안 겹치고, 하나(lens)는 그 전체를 가로질러 봅니다.</p></div>
+    <div class="timeline reveal">
+      <div class="tl-line"></div>
+      <div class="tl-track">
+        <div class="stage"><div class="when">결정할 때</div><div class="node"></div><div class="name">adr</div><div class="q">왜 정했나</div><div class="desc">결정 1건=1장, append-only, 양방향 supersede</div></div>
+        <div class="stage"><div class="when">작업 전</div><div class="node"></div><div class="name">plan</div><div class="q">무엇을 할 건가</div><div class="desc">태스크 체크박스로 진척도, 생명주기 상태</div></div>
+        <div class="stage"><div class="when">상시</div><div class="node"></div><div class="name">spec</div><div class="q">지금 어떻게</div><div class="desc">살아있는 단일 진실, 코드와 자동 대조</div></div>
+        <div class="stage"><div class="when">작업 후</div><div class="node"></div><div class="name">report</div><div class="q">무엇을 했나</div><div class="desc">plan 역참조 → 계획이 어떻게 끝났나</div></div>
+        <div class="stage"><div class="when">은퇴</div><div class="node"></div><div class="name">archive</div><div class="q">더는 현역 아님</div><div class="desc">묘지 — 사람이 승인한 것만 이동</div></div>
+      </div>
+    </div>
+    <div class="lens-row reveal d1"><div class="ic">🔭</div><div><div class="name">lens — 전체를 한눈에</div><p>docs 전체를 읽어 <b style="color:var(--text)">요약 + 시각 HTML</b>로 조망. graph가 판정한 사실 위에 AI가 그림만 얹는다. "길 잃었을 때 들여다보는" 도구.</p></div></div>
+
+    <ul class="ftree reveal d2">
+      <li><span class="dir">your-project/</span></li>
+      <li><span class="dir">.sherpa/</span><span class="cmt">거버넌스 — AI가 항상 참조, git 커밋</span>
+        <ul>
+          <li>workflow.md<span class="cmt">일하는 법 (핵심만)</span></li>
+          <li>project-context.md<span class="cmt">이 레포가 무엇인가</span></li>
+          <li>conventions.md<span class="cmt">아키텍처 + 코드 규칙</span></li>
+          <li>progress.md<span class="cmt">AI 작업 메모리 (세션 간 복원)</span></li>
+        </ul>
+      </li>
+      <li><span class="dir">docs/</span>
+        <ul>
+          <li>adr/ · plan/ · spec/ · report/<span class="cmt">산출물 + 각 INDEX</span></li>
+          <li>lens/<span class="cmt">조망 HTML (뷰별)</span></li>
+          <li>archive/<span class="cmt">묘지 (은퇴)</span></li>
+          <li><span class="gen">README.md</span><span class="cmt">대시보드 — 자동 생성</span></li>
+          <li><span class="gen">.graph.json</span><span class="cmt">기계가 읽는 사실 — 자동</span></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- MECHANISM -->
+<section>
+  <div class="wrap">
+    <div class="reveal"><span class="sec-num">04 — 동작 원리</span>
+    <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">강제는 <span class="serif-i">실제로 도는 코드</span>다</h2>
+    <p class="lead">설치하면 두 개의 hook이 당신의 작업에 조용히 끼어듭니다. 하나는 비차단, 하나는 차단형.</p></div>
+    <div class="flow">
+      <div class="fcard post reveal d1">
+        <div class="top"><span>① 파일 편집 후</span><span class="tag-pill green">PostToolUse · 비차단</span></div>
+        <div class="body">
+          <div class="step"><span class="ar">▸</span><span>Edit / Write 가 끝나면 자동 발화</span></div>
+          <div class="step"><span class="ar">↓</span><span>graph 파서가 <b>docs/를 읽어</b></span></div>
+          <div class="step"><span class="ar">↓</span><span><b>.graph.json · 대시보드 · INDEX</b> 재생성</span></div>
+          <div class="step pass-line"><span class="ar">✓</span><span>당신의 "현재 상태"가 항상 최신 — 작업은 막지 않음</span></div>
+        </div>
+      </div>
+      <div class="fcard pre reveal d2">
+        <div class="top"><span>② git commit 시도 시</span><span class="tag-pill red">PreToolUse · 차단형</span></div>
+        <div class="body">
+          <div class="step"><span class="ar">▸</span><span>Bash(git commit) 직전 자동 검사</span></div>
+          <div class="step block-line"><span class="ar">✕</span><span>완료된 plan인데 <b>report 없음</b> → 차단</span></div>
+          <div class="step block-line"><span class="ar">✕</span><span>코드 바뀌었는데 <b>spec 드리프트</b> → 차단</span></div>
+          <div class="step"><span class="ar">↩</span><span>무엇이 빠졌는지 알려주고 멈춤 (exit 2)</span></div>
+        </div>
+      </div>
+    </div>
+    <p class="lead reveal d3" style="margin-top:40px">그 아래에서 <b style="color:var(--text)">graph 파서</b>(43개 테스트로 검증된 TypeScript)가 산출물의 링크를 정적 파싱해 — 끊긴 작업·미처리 결정·드리프트·은퇴 후보를 <b style="color:var(--brass)">기계가 판정</b>합니다. LLM이 아니라요.</p>
+  </div>
+</section>
+
+<!-- ROOT PRINCIPLES -->
+<section>
+  <div class="wrap">
+    <div class="reveal"><span class="sec-num">05 — 근본 원리</span>
+    <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">왜 이것이 <span class="serif-i">무너지지 않나</span></h2>
+    <p class="lead">표면의 기능이 아니라, 그 아래에서 신뢰를 떠받치는 메커니즘.</p></div>
+    <div class="roots reveal">
+      <div class="root"><div class="k">경계 밖의 강제<span class="em">Enforcement outside the agent</span></div><div class="v">강제가 에이전트 프롬프트 안이 아니라 <b>git·파일 경계 밖</b>(hook·CI·정적 파서)에 있다. 그래서 누가·몇이 일하든 같은 경계에서 같은 불변식이 발화 — 단일·서브에이전트·하네스·<b>에이전트 팀</b> 무관하게 동일하게 움직인다.</div></div>
+      <div class="root"><div class="k">정적 파싱 = 사실<span class="em">Static parsing as truth</span></div><div class="v">역참조 링크를 기계가 읽어 노드·엣지·파생 사실을 산출. <b>환각이 구조적으로 불가능</b>하다. lens·대시보드는 이 사실을 소비할 뿐, 새로 판정하지 않는다.</div></div>
+      <div class="root"><div class="k">누적 ≠ 상시 로드<span class="em">Accumulation ≠ working set</span></div><div class="v">디스크는 무한히 쌓여도(O(n)), 컨텍스트에 들어오는 건 질의로 묶인 슬라이스(O(1)). <b>비대해진 컨텍스트가 곧 길 잃음</b>이므로, 경량화는 보너스가 아니라 전제다.</div></div>
+      <div class="root"><div class="k">가역성 = 주의 배분<span class="em">Reversibility as attention</span></div><div class="v">비가역 행위는 전체의 ~0.8%. 가역 행위를 게이트하지 않음으로써, 정작 위험한 소수에 사람의 주의를 모은다. <b>고무도장을 구조적으로 막는다.</b></div></div>
+      <div class="root"><div class="k">트리비얼 면제<span class="em">Trivial exemption</span></div><div class="v">사소한 변경엔 비싼 판단층(리뷰·테스트)을 면제하되, 값싼 결정론 바닥(링크·드리프트 검사)은 항상 실행. <b>면제가 안전한 전제가 그 바닥</b>이다. 판정은 LLM이 아니라 기계가.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMANDS -->
+<section>
+  <div class="wrap">
+    <div class="reveal"><span class="sec-num">06 — 명령</span>
+    <h2 style="font-size:clamp(34px,5vw,56px);margin:16px 0 10px">언제 <span class="serif-i">무엇을</span> 쓰나</h2></div>
+    <div class="cmds">
+      <div class="cmd reveal d1"><code>/sherpa-init</code><div class="w">프로젝트 시작 시 1회 — .sherpa·docs 구조를 결정론적으로 생성</div></div>
+      <div class="cmd reveal d1"><code>/sherpa-status</code><div class="w">"내가 어디 있지?" — 진행 중 작업·주의 항목을 대시보드로</div></div>
+      <div class="cmd reveal d2"><code>/sherpa-lens</code><div class="w">전체 그림이 보고 싶을 때 — 요약 + 시각 HTML로 조망</div></div>
+      <div class="cmd reveal d2"><code>/sherpa-conventions</code><div class="w">코드 규칙을 정할 때 — 팀/개인 컨벤션을 린터로 매핑</div></div>
+      <div class="cmd reveal d3"><code>/sherpa-sweep</code><div class="w">죽은 문서 정리 — 은퇴 후보 제안, 승인분만 archive</div></div>
+      <div class="cmd reveal d3"><code>/sherpa-reindex</code><div class="w">수동 재생성 (보통 hook이 자동) — INDEX·대시보드·graph</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="foot">
+  <div class="wrap reveal">
+    <div class="glyph">🧭</div>
+    <div class="l">같은 "철학"의 사례는 많지만, 같은 "플러그인"은 거의 우리뿐.</div>
+    <div class="install">
+<span class="c">/plugin</span> marketplace add iamhardyha/sherpa<br>
+<span class="c">/plugin</span> install sherpa@sherpa-marketplace<br>
+<span class="c">/reload-plugins</span>
+    </div>
+    <div class="meta">SHERPA · AI 산출물 워크플로우 · 결정론적 강제 · MIT</div>
+  </div>
+</footer>
+
+<script>
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+</body>
+</html>
