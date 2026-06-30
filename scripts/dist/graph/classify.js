@@ -16,11 +16,8 @@ const COMMENT = /^(\/\/|#|\/\*|\*\/|\*)/;
 // 빈 줄·주석만이면 trivial. 동작 줄이 하나라도 있으면 non-trivial.
 // (들여쓰기가 바뀐 줄은 trim 후 내용이 남으므로 코드 줄로 보아 non-trivial — 언어 안전)
 export function isTrivialCode(changedLines) {
-    for (const line of changedLines) {
+    return !changedLines.some((line) => {
         const trimmed = line.trim();
-        if (trimmed === '' || COMMENT.test(trimmed))
-            continue;
-        return false;
-    }
-    return true;
+        return trimmed !== '' && !COMMENT.test(trimmed);
+    });
 }

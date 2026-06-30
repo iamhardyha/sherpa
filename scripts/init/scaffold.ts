@@ -1,3 +1,5 @@
+import { ARTIFACT_DIRS } from '../graph/collect.js';
+
 export interface ScaffoldOptions {
   docsDir?: string;
   stream?: string;
@@ -13,7 +15,6 @@ export interface ScaffoldPlan {
   copies: Copy[];
 }
 
-const ARTIFACT_DIRS = ['adr', 'plan', 'spec', 'report'];
 const LENS_VIEWS = ['overview', 'threads', 'decisions', 'concept', 'custom'];
 
 // templates/governance/{파일} → 레포 {경로}
@@ -30,10 +31,12 @@ export function planScaffold(options: ScaffoldOptions): ScaffoldPlan {
   const docsDir = options.docsDir ?? 'docs';
   const base = options.stream ? `${docsDir}/${options.stream}` : docsDir;
 
-  const dirs = ['.sherpa'];
-  for (const a of ARTIFACT_DIRS) dirs.push(`${base}/${a}`);
-  for (const v of LENS_VIEWS) dirs.push(`${base}/lens/${v}`);
-  dirs.push(`${base}/archive`);
+  const dirs = [
+    '.sherpa',
+    ...ARTIFACT_DIRS.map((a) => `${base}/${a}`),
+    ...LENS_VIEWS.map((v) => `${base}/lens/${v}`),
+    `${base}/archive`,
+  ];
 
   return { dirs, copies: GOVERNANCE };
 }
