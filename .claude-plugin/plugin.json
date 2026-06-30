@@ -1,7 +1,7 @@
 {
   "name": "sherpa",
   "description": "AI 산출물 워크플로우 — 작업에만 몰두하세요. 산출물 관리는 AI가, 신뢰는 결정론적 강제(hook·CI)가 책임집니다.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "iamhardyha",
     "email": "ch.ha@tnear.com"
