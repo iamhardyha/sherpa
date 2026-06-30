@@ -194,7 +194,20 @@ section:first-of-type{border-top:none}
 .stage .name,.root .k,.lens-row .name,.mva .side .big{font-weight:700}
 .principle .pn{font-weight:800}
 .shelf .box .t,.hero h1{font-weight:800}
-.thesis .big{font-weight:400}
+/* 더 둘러보기 링크 카드 */
+.more-eyebrow{text-align:center;margin-top:56px;font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--faint)}
+.more-eyebrow::before,.more-eyebrow::after{content:"";display:inline-block;width:34px;height:1px;background:var(--line);vertical-align:middle;margin:0 14px}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:18px;max-width:680px;margin:22px auto 0}
+@media(max-width:560px){.links{grid-template-columns:1fr}}
+.linkcard{display:block;text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:26px 28px;text-align:left;background:var(--paper2);position:relative;overflow:hidden;transition:transform .35s cubic-bezier(.2,.7,.2,1),border-color .35s,background .35s}
+.linkcard::after{content:"";position:absolute;right:-42px;bottom:-42px;width:104px;height:104px;border:1px solid var(--line);border-radius:50%;opacity:.5;transition:transform .55s cubic-bezier(.2,.7,.2,1)}
+.linkcard:hover{border-color:var(--brass);transform:translateY(-3px);background:rgba(203,161,53,.06)}
+.linkcard:hover::after{transform:scale(1.35)}
+.linkcard .k{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass)}
+.linkcard .t{font-family:var(--serif);font-size:21px;color:var(--text);margin:9px 0 5px;font-weight:700}
+.linkcard .d{font-size:13.5px;color:var(--muted)}
+.linkcard .ar{position:absolute;top:24px;right:26px;color:var(--brass);font-size:18px;transition:transform .35s}
+.linkcard:hover .ar{transform:translate(4px,-4px)}
 </style>
 </head>
 <body>
@@ -431,6 +444,23 @@ section:first-of-type{border-top:none}
 <span class="c">/plugin</span> install sherpa@sherpa-marketplace<br>
 <span class="c">/reload-plugins</span>
     </div>
+
+    <div class="more-eyebrow">더 둘러보기</div>
+    <div class="links">
+      <a class="linkcard" href="https://iamhardyha.github.io" target="_blank" rel="noopener">
+        <span class="k">Blog</span>
+        <div class="t">GitHub 블로그</div>
+        <div class="d">개발 기록과 생각 ✍️</div>
+        <span class="ar">↗</span>
+      </a>
+      <a class="linkcard" href="https://iamhardyha.github.io/pocket-senior/" target="_blank" rel="noopener">
+        <span class="k">Project</span>
+        <div class="t">포켓시니어</div>
+        <div class="d">프로젝트 보러가기 📱</div>
+        <span class="ar">↗</span>
+      </a>
+    </div>
+
     <div class="meta">SHERPA · AI 산출물 워크플로우 · 결정론적 강제 · MIT</div>
   </div>
 </footer>
